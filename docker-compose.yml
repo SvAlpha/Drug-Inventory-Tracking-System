@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: drug-inventory-db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin1234
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - drug-inventory-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: drug-inventory-server
+    environment:
+      MONGO_URI: mongodb://admin:admin1234@mongodb:27017/drug-inventory?authSource=admin
+      JWT_SECRET: drugInventorySecret2026
+      JWT_EXPIRES_IN: 7d
+      PORT: 5000
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    networks:
+      - drug-inventory-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: drug-inventory-client
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - drug-inventory-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  drug-inventory-network:
+    driver: bridge
